@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmailGeneratorRouteImport } from './routes/email-generator'
+import { Route as MeetingSummariserRouteImport } from './routes/meeting-summariser'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const EmailGeneratorRoute = EmailGeneratorRouteImport.update({
   path: '/email-generator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MeetingSummariserRoute = MeetingSummariserRouteImport.update({
+  id: '/meeting-summariser',
+  path: '/meeting-summariser',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/email-generator': typeof EmailGeneratorRoute
+  '/meeting-summariser': typeof MeetingSummariserRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/email-generator': typeof EmailGeneratorRoute
+  '/meeting-summariser': typeof MeetingSummariserRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/email-generator': typeof EmailGeneratorRoute
+  '/meeting-summariser': typeof MeetingSummariserRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/email-generator'
+  fullPaths: '/' | '/email-generator' | '/meeting-summariser'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/email-generator'
-  id: '__root__' | '/' | '/email-generator'
+  to: '/' | '/email-generator' | '/meeting-summariser'
+  id: '__root__' | '/' | '/email-generator' | '/meeting-summariser'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EmailGeneratorRoute: typeof EmailGeneratorRoute
+  MeetingSummariserRoute: typeof MeetingSummariserRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailGeneratorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/meeting-summariser': {
+      id: '/meeting-summariser'
+      path: '/meeting-summariser'
+      fullPath: '/meeting-summariser'
+      preLoaderRoute: typeof MeetingSummariserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EmailGeneratorRoute: EmailGeneratorRoute,
+  MeetingSummariserRoute: MeetingSummariserRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
