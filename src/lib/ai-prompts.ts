@@ -4,7 +4,7 @@ export type EmailInput = {
   keyPoints: string;
   tone: "Formal" | "Friendly" | "Persuasive";
   length: "Concise" | "Standard" | "Detailed";
-  extra?: string;
+  extra?: string | undefined;
 };
 
 export type MeetingInput = {
@@ -16,10 +16,10 @@ export type MeetingInput = {
 
 export type TaskInput = {
   description: string;
-  deadline?: string;
-  estimate?: string;
-  priority?: string;
-  notes?: string;
+  deadline?: string | undefined;
+  estimate?: string | undefined;
+  priority?: string | undefined;
+  notes?: string | undefined;
 };
 
 const NO_FABRICATION =
