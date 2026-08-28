@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Plus, Trash2, ListChecks, Eraser } from "lucide-react";
+import { ListChecks, Eraser, Loader2, AlertTriangle, Inbox, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
-import { OutputEditor } from "@/components/ai/OutputEditor";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -15,244 +13,191 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { planTasks } from "@/lib/ai.functions";
+import { mockPlanTasks, type PlannedTask } from "@/lib/mock-ai";
 
 export const Route = createFileRoute("/task-planner")({
   head: () => ({
     meta: [
-      { title: "AI Task Planner | WorkFlow AI" },
+      { title: "AI Task Planner | AI Workplace Productivity Assistant" },
       {
         name: "description",
         content:
-          "Enter your workplace tasks and let AI prioritise them by urgency, importance and effort, with a suggested schedule.",
+          "List your tasks and get a prioritised plan with High, Medium and Low priorities plus suggested time slots.",
       },
-      { property: "og:title", content: "AI Task Planner | WorkFlow AI" },
+      { property: "og:title", content: "AI Task Planner | AI Workplace Assistant" },
       {
         property: "og:description",
-        content: "Prioritise workplace tasks and get a suggested daily or weekly schedule.",
+        content: "Prioritise workplace tasks and get suggested daily or weekly time slots.",
       },
     ],
   }),
   component: TaskPlannerPage,
 });
 
-type Task = {
-  id: number;
-  description: string;
-  deadline: string;
-  estimate: string;
-  priority: string;
-  notes: string;
+const PRIORITY_STYLES: Record<PlannedTask["priority"], string> = {
+  High: "border-destructive/30 bg-destructive/10 text-destructive",
+  Medium: "border-warning/40 bg-warning/15 text-warning-foreground",
+  Low: "border-border bg-muted text-muted-foreground",
 };
 
-const newTask = (id: number): Task => ({
-  id,
-  description: "",
-  deadline: "",
-  estimate: "",
-  priority: "Medium",
-  notes: "",
-});
+function PriorityTag({ priority }: { priority: PlannedTask["priority"] }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${PRIORITY_STYLES[priority]}`}
+    >
+      {priority} priority
+    </span>
+  );
+}
 
 function TaskPlannerPage() {
-  const run = useServerFn(planTasks);
-  const [tasks, setTasks] = useState<Task[]>([newTask(1)]);
-  const [horizon, setHorizon] = useState<"Daily" | "Weekly">("Weekly");
-  const [output, setOutput] = useState("");
+  const [tasks, setTasks] = useState("");
+  const [horizon, setHorizon] = useState<"Daily" | "Weekly">("Daily");
+  const [plan, setPlan] = useState<PlannedTask[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const update = (id: number, key: keyof Omit<Task, "id">, value: string) =>
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, [key]: value } : t)));
-
   const generate = async () => {
     if (loading) return;
-    const filled = tasks.filter((t) => t.description.trim().length > 0);
-    if (filled.length === 0) {
-      setError("Add at least one task description before generating a plan.");
+    if (tasks.trim().length === 0) {
+      setError("Add at least one task — one per line — before generating a schedule.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const result = await run({
-        data: {
-          horizon,
-          tasks: filled.map((t) => ({
-            description: t.description,
-            deadline: t.deadline,
-            estimate: t.estimate,
-            priority: t.priority,
-            notes: t.notes,
-          })),
-        },
-      });
-      setOutput(result.text);
+      setPlan(await mockPlanTasks(tasks, horizon));
     } catch {
-      setError("We couldn't build your plan just now. Please try again in a moment.");
+      setError("Something went wrong building your schedule. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const copy = async () => {
+    if (!plan) return;
+    const text = plan
+      .map((item) => `${item.priority} | ${item.slot} | ${item.task} — ${item.reason}`)
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Schedule copied to clipboard");
+    } catch {
+      toast.error("Copy failed — please select the text and copy manually.");
     }
   };
 
   return (
     <AppShell
       title="AI Task Planner"
-      description="List what's on your plate. The AI ranks tasks as High, Medium or Low priority, suggests a schedule and explains its reasoning."
+      description="List your tasks one per line, choose a daily or weekly view, and get a prioritised schedule."
     >
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         <form
-          className="flex flex-col gap-4"
+          className="card-surface flex flex-col gap-5 p-5 sm:p-6"
           onSubmit={(event) => {
             event.preventDefault();
             void generate();
           }}
         >
-          {tasks.map((task, index) => (
-            <fieldset key={task.id} className="card-surface flex flex-col gap-4 p-5">
-              <div className="flex items-center justify-between">
-                <legend className="text-sm font-semibold text-foreground">Task {index + 1}</legend>
-                {tasks.length > 1 ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Remove task ${index + 1}`}
-                    onClick={() => setTasks((prev) => prev.filter((t) => t.id !== task.id))}
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" /> Remove
-                  </Button>
-                ) : null}
-              </div>
+          <div className="grid gap-2">
+            <Label htmlFor="tasks">Your tasks (one per line)</Label>
+            <Textarea
+              id="tasks"
+              rows={12}
+              placeholder={
+                "Send client invoice — urgent\nDraft onboarding deck\nReview supplier contract\nTidy shared drive"
+              }
+              value={tasks}
+              onChange={(event) => setTasks(event.target.value)}
+            />
+          </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor={`desc-${task.id}`}>Task description</Label>
-                <Input
-                  id={`desc-${task.id}`}
-                  placeholder="e.g. Finalise the client onboarding deck"
-                  value={task.description}
-                  onChange={(e) => update(task.id, "description", e.target.value)}
-                />
-              </div>
+          <div className="grid gap-2 sm:max-w-56">
+            <Label htmlFor="horizon">Schedule type</Label>
+            <Select value={horizon} onValueChange={(value) => setHorizon(value as typeof horizon)}>
+              <SelectTrigger id="horizon">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Daily">Daily</SelectItem>
+                <SelectItem value="Weekly">Weekly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="grid gap-2">
-                  <Label htmlFor={`deadline-${task.id}`}>Deadline</Label>
-                  <Input
-                    id={`deadline-${task.id}`}
-                    type="date"
-                    value={task.deadline}
-                    onChange={(e) => update(task.id, "deadline", e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor={`estimate-${task.id}`}>Estimated time</Label>
-                  <Input
-                    id={`estimate-${task.id}`}
-                    placeholder="e.g. 2 hours"
-                    value={task.estimate}
-                    onChange={(e) => update(task.id, "estimate", e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor={`priority-${task.id}`}>Importance</Label>
-                  <Select
-                    value={task.priority}
-                    onValueChange={(value) => update(task.id, "priority", value)}
-                  >
-                    <SelectTrigger id={`priority-${task.id}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor={`notes-${task.id}`}>Notes (optional)</Label>
-                <Textarea
-                  id={`notes-${task.id}`}
-                  rows={2}
-                  placeholder="e.g. Blocked until legal signs off"
-                  value={task.notes}
-                  onChange={(e) => update(task.id, "notes", e.target.value)}
-                />
-              </div>
-            </fieldset>
-          ))}
-
-          <div className="card-surface flex flex-col gap-4 p-5">
-            <div className="grid gap-2 sm:max-w-56">
-              <Label htmlFor="horizon">Schedule type</Label>
-              <Select
-                value={horizon}
-                onValueChange={(value) => setHorizon(value as "Daily" | "Weekly")}
-              >
-                <SelectTrigger id="horizon">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Daily">Daily schedule</SelectItem>
-                  <SelectItem value="Weekly">Weekly schedule</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  setTasks((prev) => [
-                    ...prev,
-                    newTask(Math.max(...prev.map((t) => t.id), 0) + 1),
-                  ])
-                }
-              >
-                <Plus className="size-4" aria-hidden="true" /> Add another task
-              </Button>
-              <Button type="submit" disabled={loading}>
-                <ListChecks className="size-4" aria-hidden="true" />
-                {loading ? "Planning..." : "Prioritise & plan"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={loading}
-                onClick={() => {
-                  setTasks([newTask(1)]);
-                  setOutput("");
-                  setError(null);
-                }}
-              >
-                <Eraser className="size-4" aria-hidden="true" /> Clear all
-              </Button>
-            </div>
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={loading}>
+              <ListChecks className="size-4" aria-hidden="true" />
+              {loading ? "Planning..." : "Generate Schedule"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={loading}
+              onClick={() => {
+                setTasks("");
+                setPlan(null);
+                setError(null);
+              }}
+            >
+              <Eraser className="size-4" aria-hidden="true" /> Clear
+            </Button>
           </div>
         </form>
 
-        <div className="xl:sticky xl:top-6 xl:self-start">
-          <OutputEditor
-            id="plan-output"
-            label="Prioritised plan"
-            value={output}
-            onChange={setOutput}
-            loading={loading}
-            error={error}
-            emptyTitle="No plan yet"
-            emptyHint="Add your tasks with deadlines, estimated time and importance, then generate a prioritised plan with a suggested schedule."
-            onRegenerate={() => void generate()}
-            onClear={() => {
-              setOutput("");
-              setError(null);
-            }}
-            rows={24}
-          />
-        </div>
+        <section className="card-surface flex flex-col p-5 sm:p-6" aria-live="polite">
+          <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+            <h2 className="truncate text-base font-semibold">Prioritised schedule</h2>
+            <Button type="button" variant="outline" size="sm" onClick={copy} disabled={!plan}>
+              <Copy className="size-4" aria-hidden="true" /> Copy
+            </Button>
+          </div>
+
+          {error ? (
+            <div
+              role="alert"
+              className="mb-4 flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+            >
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>{error}</span>
+            </div>
+          ) : null}
+
+          {loading ? (
+            <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-surface p-8 text-center">
+              <Loader2 className="size-6 animate-spin text-primary" aria-hidden="true" />
+              <p className="text-sm font-medium">Prioritising your tasks...</p>
+            </div>
+          ) : plan ? (
+            <ol className="flex flex-col gap-3">
+              {plan.map((item, index) => (
+                <li
+                  key={`${item.task}-${index}`}
+                  className="rounded-lg border border-border bg-surface p-4"
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <p className="min-w-0 text-sm font-semibold text-foreground">{item.task}</p>
+                    <PriorityTag priority={item.priority} />
+                  </div>
+                  <p className="mt-2 text-xs font-medium text-primary">{item.slot}</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                    {item.reason}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="flex min-h-64 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface p-8 text-center">
+              <Inbox className="size-6 text-muted-foreground" aria-hidden="true" />
+              <p className="text-sm font-semibold">No schedule yet</p>
+              <p className="max-w-xs text-xs text-muted-foreground">
+                Enter your tasks on the left — one per line — pick Daily or Weekly, then select
+                Generate Schedule.
+              </p>
+            </div>
+          )}
+        </section>
       </div>
     </AppShell>
   );
