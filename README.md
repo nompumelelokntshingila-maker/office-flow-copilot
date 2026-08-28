@@ -1,4 +1,4 @@
-# WorkFlow AI — Workplace Productivity Assistant
+# AI Workplace Productivity Assistant
 
 A single, integrated dashboard that helps professionals automate everyday workplace tasks using AI-powered tools.
 
