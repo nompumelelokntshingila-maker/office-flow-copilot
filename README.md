@@ -34,6 +34,4 @@ cd office-flow-copilot
 npm i
 npm run dev
 
-## Team Members
 
-- Nompumelelo Khanyisile Ntshingila
