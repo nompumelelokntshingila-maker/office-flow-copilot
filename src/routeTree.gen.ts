@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChatbotRouteImport } from './routes/chatbot'
 import { Route as NotesSummarizerRouteImport } from './routes/notes-summarizer'
 import { Route as TaskPlannerRouteImport } from './routes/task-planner'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatbotRoute = ChatbotRouteImport.update({
+  id: '/chatbot',
+  path: '/chatbot',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotesSummarizerRoute = NotesSummarizerRouteImport.update({
@@ -31,30 +37,34 @@ const TaskPlannerRoute = TaskPlannerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/chatbot': typeof ChatbotRoute
   '/notes-summarizer': typeof NotesSummarizerRoute
   '/task-planner': typeof TaskPlannerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/chatbot': typeof ChatbotRoute
   '/notes-summarizer': typeof NotesSummarizerRoute
   '/task-planner': typeof TaskPlannerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/chatbot': typeof ChatbotRoute
   '/notes-summarizer': typeof NotesSummarizerRoute
   '/task-planner': typeof TaskPlannerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/notes-summarizer' | '/task-planner'
+  fullPaths: '/' | '/chatbot' | '/notes-summarizer' | '/task-planner'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/notes-summarizer' | '/task-planner'
-  id: '__root__' | '/' | '/notes-summarizer' | '/task-planner'
+  to: '/' | '/chatbot' | '/notes-summarizer' | '/task-planner'
+  id: '__root__' | '/' | '/chatbot' | '/notes-summarizer' | '/task-planner'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChatbotRoute: typeof ChatbotRoute
   NotesSummarizerRoute: typeof NotesSummarizerRoute
   TaskPlannerRoute: typeof TaskPlannerRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chatbot': {
+      id: '/chatbot'
+      path: '/chatbot'
+      fullPath: '/chatbot'
+      preLoaderRoute: typeof ChatbotRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notes-summarizer': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChatbotRoute: ChatbotRoute,
   NotesSummarizerRoute: NotesSummarizerRoute,
   TaskPlannerRoute: TaskPlannerRoute,
 }
