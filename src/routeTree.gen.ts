@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as NotesSummarizerRouteImport } from './routes/notes-summarizer'
 import { Route as TaskPlannerRouteImport } from './routes/task-planner'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotesSummarizerRoute = NotesSummarizerRouteImport.update({
+  id: '/notes-summarizer',
+  path: '/notes-summarizer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TaskPlannerRoute = TaskPlannerRouteImport.update({
@@ -25,27 +31,31 @@ const TaskPlannerRoute = TaskPlannerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/notes-summarizer': typeof NotesSummarizerRoute
   '/task-planner': typeof TaskPlannerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/notes-summarizer': typeof NotesSummarizerRoute
   '/task-planner': typeof TaskPlannerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/notes-summarizer': typeof NotesSummarizerRoute
   '/task-planner': typeof TaskPlannerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/task-planner'
+  fullPaths: '/' | '/notes-summarizer' | '/task-planner'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/task-planner'
-  id: '__root__' | '/' | '/task-planner'
+  to: '/' | '/notes-summarizer' | '/task-planner'
+  id: '__root__' | '/' | '/notes-summarizer' | '/task-planner'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  NotesSummarizerRoute: typeof NotesSummarizerRoute
   TaskPlannerRoute: typeof TaskPlannerRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notes-summarizer': {
+      id: '/notes-summarizer'
+      path: '/notes-summarizer'
+      fullPath: '/notes-summarizer'
+      preLoaderRoute: typeof NotesSummarizerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/task-planner': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  NotesSummarizerRoute: NotesSummarizerRoute,
   TaskPlannerRoute: TaskPlannerRoute,
 }
 export const routeTree = rootRouteImport
